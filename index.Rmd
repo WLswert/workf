@@ -1,0 +1,200 @@
+---
+title: "销量分析报告"
+author: "王路"
+date: "`r Sys.Date()`"
+---
+
+# 分析目的 
+
+
+<style>
+   .left {
+            width: 700px;
+            height: 550px;
+            float: left;
+            margin: auto;
+        }
+      .right {
+            width: 200px;
+            height: 500px;
+            float: right;
+            margin: auto;
+        }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+</style>
+
+<img src="./logo.jpg" width="225" height="100" />
+
+```{block, type='rmdlogo'}
+本文的分析目的：了解月亮商城半年间的销量、订单、用户等情况，与各产品间的关联，了解用户的相关需求。
+```
+
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+> <font face="微软雅黑" size=4 color=DodgerBlue> 主要思路：在时间纬度上进行多方面的分析，简单统计分析总体的销量情况，然后分析每个月的销量情况。后续利用简单的模型，挖掘出其中一部分销量规则。</font>
+
+**分析主题**：进行了销售额分析、订单分析、用户分析等主题分析，并对其分析结果进行原因解释
+
+**数据源**: 以当天时间为基准，抽取180天的时间窗口内的订单数据，用户数据，商品信息等多个纬度表的信息。并对其中的数据进行简单的处理，在抽取订单数据时，只提取了有效订单数据（去除保证金，测试，洗衣服务等订单）。
+
+# 整体分析 {#intro}
+
+
+```{r prepare-data}
+# source("./R/ProcessData.R", local = T, encoding = "UTF-8")
+# 
+# Dtlist = DtProcess()
+# 
+# ##订单总量，以及比例
+# ruleDt = Anarules(Dtlist$Arules)
+# tot_n = ruleDt$numdt
+# nd = data.frame(tot_n$name, tot_n$count, tot_n$fre * 100, stringsAsFactors = F)
+ nd=read.csv("nd.csv")
+ names(nd)<-c("商品名称","订单量","比例")
+
+dataOut = nd[, 1:2]
+names(dataOut) = c("name", "freq")
+# 
+# ##销售额与出货量
+# tot_sale=Dtlist$combine
+# names(tot_sale)[4:7]=c("us_order","em_order","us_pay","em_pay")
+# 
+# ###购买用户数
+# user=Dtlist$worker
+ ##,总的销售额：
+#`r sum(tot_sale$paytotal)`（万），出货量为：`r sum(tot_sale$itemnum)`，`r #sum(tot_sale$itemnum)+sum(tot_sale$itemnum)`购买用户数`r #length(user[,1])`。其分析主题包含以下两部分：
+
+```
+
+
+  在这段时间内，月亮商城的总订单量：<span class="rmark">`r  sum(nd$订单量 )`（单）</span>
+
++ **销售额分析** ：主要分析了所有用户提供的总体销售额，每月销售额，每日销售额等情况。
+
++ **订单分析** ：主要分析了所有订单的情况，热销商品，热销地区，支付方式，每月热销商品等情况。
+
++ **用户分析** ：主要分析了所有用户的情况，包含用户的购买次数，购买时间，购买金额等情况。
+
+
+```{r pdata ,include=FALSE}
+library(data.table)
+source("R/echart/utils.R")
+source('R/echart/optSetUtils.R')
+source('R/ePie.R')
+source('R/echart/eLine.R')
+
+
+###pie
+dt=c(sum(Dtlist$combine$非公司员工.y)/10000,sum(Dtlist$combine$公司员工.y)/10000)
+dt=round(dt,digits = 2)
+names(dt) = c("非公司员工","公司员工")
+
+ePie(dt,title = "月亮商城销量图",ser.name="销量",
+     toolbox  = FALSE,formatter = "{a} <br/>{b} : {c}万 ({d}%)")
+
+####line
+ldt=Dtlist$combine[,c(2,6:7)]
+y=cbind.data.frame("总销量"=ldt[,1],"非员工销量"=round(ldt[,2]/10000,digits=3))
+row.names(y)=as.character(Dtlist$combine$DAYTIME)
+
+
+eLine(y, opt=list(dataZoom=list(show=TRUE,end=35)),toolbox = FALSE)
+
+
+####area
+debug(eLine)
+
+da=Dtlist$card
+melt(Dtlist$card,id.vars = c(1,4))
+adt=dcast.data.table(Dtlist$card,DAYTIME+month~PAY_TYPE,value.var = "card_no")
+row.names(adt)=as.character(adt$DAYTIME)
+pdt=as.data.frame(adt,stringsAsFactor=F)
+pdt[is.na(pdt)] <- 0
+
+eArea(pdt[,c(-1,-2)],stack = NULL)
+
+
+```
+
+
+
+#销售额分析
+1. 在总体销售额部分，包含了：员工提供与用户提供如下图所示（饼图）
+
+
+1. 每月的销售额图如下图所示，下图中月销售量最大的是`r `,
+
+```{r, echo=FALSE, fig.height=4.6, fig.width=10}
+
+```
+
+
+
+1. 每日销售额图，从图中可以知道在，（时序图）
+在这段时间内，每日销售额最大为：，是在号。销售额的平均值为
+
+```{r, echo=FALSE, fig.height=4.6, fig.width=10}
+
+```
+
+
+
+
+# 订单分析
+
+1. 总体销售额，员工提供，用户提供（饼图）
+
+
+1. 每月的销售额图，（时序图）
+
+
+1. 每日销售额图，从图中可以知道在，（时序图）
+在这段时间内，每日销售额最大为：，是在号。销售额的平均值为
+
+其中各个商品的订单量如下图表所示：
+
+```{r data,results='asis',echo=FALSE}
+# nd=read.csv('nd.csv')
+# dt = paste(unlist(lapply(dataOut, function(z) {
+#   x = paste(round(z$name, 3), collapse = ',')
+#   y = paste(round(z$freq, 3), collapse = ',')
+#   sprintf('{\n  "x": [%s],\n  "y": [%s]\n}', xs, ys)
+# })), collapse = ', \n')
+# cat('<script>',
+#     sprintf('var data = [%s]', xy),
+#     '</script>',
+#     sep = '\n')
+
+```
+
+
+
+其中订单量排名前三的商品为：<font face="微软雅黑" size=6 color=red> `r head(dataOut$name,3)` </font>。 其详细的情况如下表：
+
+
+```{r tab, dependson="prepare-data",echo=FALSE,results='asis'}
+
+knitr::kable(
+  head(nd,30),align='c',caption = '订单前30'
+)
+```
+
+从表中可以看出
+
+```{r pic, dependson="prepare-data",echo=FALSE}
+# library(wordcloud2)
+# wordcloud2::wordcloud2(demoFreqC,size=0.3)
+#   
+# wordcloud2::wordcloud2(nd[,1:2],size=0.3)
+
+```
+
+#用户分析
+

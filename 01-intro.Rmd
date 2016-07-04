@@ -1,0 +1,111 @@
+# 整体分析 {#intro}
+
+
+## 销量分析
+<style>
+   .left {
+            width: 700px;
+            height: 550px;
+            float: left;
+            margin: auto;
+        }
+      .right {
+            width: 200px;
+            height: 500px;
+            float: right;
+            margin: auto;
+        }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+</style>
+
+
+```{r prepare-data}
+
+# source("./R/ProcessData.R",local = T,encoding = "UTF-8")
+# 
+# Dtlist=DtProcess()
+# 
+# ruleDt=Anarules(Dtlist$Arules)
+# 
+# tot_n=ruleDt$numdt
+# nd=data.frame(tot_n$name,tot_n$count,tot_n$fre*100,stringsAsFactors = F)
+nd=read.csv("nd.csv")
+nd
+```
+
+在这段时间内，月亮商城的总订单量：`r  sum(nd$订单量 )`（单）,总的销售额：，出货量为：。其中各个商品的订单量如下图表所示：
+
+
+
+
+```{r pic,results='asis',echo=FALSE}
+nd=read.csv('nd.csv')
+dataOut=nd[,1:2]
+names(dataOut) = c("name", "freq")
+# dt = paste(unlist(lapply(dataOut, function(z) {
+#   x = paste(round(z$name, 3), collapse = ',')
+#   y = paste(round(z$freq, 3), collapse = ',')
+#   sprintf('{\n  "x": [%s],\n  "y": [%s]\n}', xs, ys)
+# })), collapse = ', \n')
+# cat('<script>',
+#     sprintf('var data = [%s]', xy),
+#     '</script>',
+#     sep = '\n')
+
+```
+其中订单量排名前三的为：<font face="微软雅黑" size=20 color=red> `r head(dataOut$name,3)` </font>。 其详细的情况如下表：
+
+```{r tab, echo=FALSE, results='asis',highlight=TRUE}
+knitr::kable(head(dataOut, 30))
+```
+
+分析主题：商品销量分析，销售额分析，订单分析等主题进行分析。并在多个纬度上细化分析。
+
+<script src="./js/wordcloud2.js"></script>
+
+<canvas id="myCanvas" width="600" height="600"></canvas>
+
+<script>
+        var option={
+        list:[["数据",2304],["统计",1413],["用户",855]] ,
+        gridSize: 0,
+        weightFactor:120/2304,
+        minRotation: 1.58,
+        maxRotation: 1.58,
+        rotateRatio: 0.3,
+        color: function(){
+        return ['blue','rgb(95, 95, 253)','rgb(146, 146, 255)','rgb(169, 169, 226)','rgb(168, 217,252)'][Math.floor(Math.random()*5)]},
+        fontFamily: '微软雅黑',
+        backgroundColor: '#fff',
+        shuffle : "TRUE",
+        shape : 'circle',
+        ellipticity : 0.65,
+        Interactive:'TRUE'
+        }
+        var elements= document.getElementById('myCanvas');
+        WordCloud(elements, option);
+</script>
+
+
+```{r tab, dependson="prepare-data",echo=FALSE}
+
+names(nd)<-c("商品名称","订单量","比例")
+knitr::kable(
+  head(nd,30)
+)
+```
+
+
+
+```{r pic, dependson="prepare-data",echo=FALSE}
+library(wordcloud2)
+wordcloud2::wordcloud2(demoFreqC,size=0.3)
+  
+wordcloud2::wordcloud2(nd[,1:2],size=0.3)
+
+```
+

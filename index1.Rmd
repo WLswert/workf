@@ -1,0 +1,340 @@
+---
+title: "销量分析报告"
+author: "王路"
+date: "`r Sys.Date()`"
+documentclass: book
+output: 
+  bookdown::html_chapter:
+    css: [css/style.css, css/toc.css]
+classoption: "hyperref,"
+---
+
+
+# 分析目的 
+
+
+<style>
+   .left {
+            width: 700px;
+            height: 550px;
+            float: left;
+            margin: auto;
+        }
+      .right {
+            width: 200px;
+            height: 500px;
+            float: right;
+            margin: auto;
+        }
+  .col3 {
+    columns: 3 100px;
+    -webkit-columns: 3 100px;
+    -moz-columns: 3 100px;
+  }
+</style>
+
+<img src="./logo.jpg" width="225" height="100" />
+
+```{block, type='rmdlogo'}
+本文的分析目的：了解月亮商城半年间的销量、订单、用户等情况，与各产品间的关联，了解用户的相关需求。
+```
+
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+> <font face="微软雅黑" size=4 color=DodgerBlue> 主要思路：在时间纬度上进行多方面的分析，简单统计分析总体的销量情况，然后分析每个月的销量情况。后续利用简单的模型，挖掘出其中一部分销量规则。</font>
+
+**分析主题**：进行了销售额分析、订单分析、用户分析等主题分析，并对其分析结果进行原因解释
+
+**数据源**: 以当天时间为基准，抽取180天的时间窗口内的订单数据，用户数据，商品信息等多个纬度表的信息。并对其中的数据进行简单的处理，在抽取订单数据时，只提取了有效订单数据（去除保证金，测试，洗衣服务等订单）。
+
+# 整体分析 {#intro}
+
+
+```{r prepare-data}
+# source("./R/ProcessData.R", local = T, encoding = "UTF-8")
+# 
+# Dtlist = DtProcess()
+# 
+# ##订单总量，以及比例
+# ruleDt = Anarules(Dtlist$Arules)
+# tot_n = ruleDt$numdt
+# nd = data.frame(tot_n$name, tot_n$count, tot_n$fre * 100, stringsAsFactors = F)
+ nd=read.csv("nd.csv")
+ names(nd)<-c("商品名称","订单量","比例")
+
+dataOut = nd[, 1:2]
+names(dataOut) = c("name", "freq")
+# 
+# ##销售额与出货量
+# tot_sale=Dtlist$combine
+# names(tot_sale)[4:7]=c("us_order","em_order","us_pay","em_pay")
+# 
+# ###购买用户数
+# user=Dtlist$worker
+ ##,总的销售额：
+#`r sum(tot_sale$paytotal)`（万），出货量为：`r sum(tot_sale$itemnum)`，`r #sum(tot_sale$itemnum)+sum(tot_sale$itemnum)`购买用户数`r #length(user[,1])`。其分析主题包含以下两部分：
+
+```
+
+
+  在这段时间内，月亮商城的总订单量：<span class="rmark">`r  sum(nd$订单量 )`（单）</span>
+
++ **销售额分析** ：主要分析了所有用户提供的总体销售额，每月销售额，每日销售额等情况。
+
++ **订单分析** ：主要分析了所有订单的情况，热销商品，热销地区，支付方式，每月热销商品等情况。
+
++ **用户分析** ：主要分析了所有用户的情况，包含用户的购买次数，购买时间，购买金额等情况。
+
+
+
+#销售额分析
+1. 在总体销售额部分，包含了：员工提供与用户提供如下图所示（饼图）
+
+```{r test ,results='asis',echo=FALSE}
+cl_v=c("非公司员工","公司员工")
+class=jsonlite::toJSON(cl_v)
+data=jsonlite::toJSON(list(value=sum(tot_sale$us_pay),name=cl_v[1]),
+                      list(value=sum(tot_sale$em_pay),name=cl_v[2])
+)
+cat('<script>',
+    sprintf('var class = %s;data=%s', class,data),
+    '</script>',
+    sep = '\n')
+```
+
+<script src="css/JS/echarts.js"></script>
+<div id="pie"></div>
+<script>
+ var Mychart=echarts.init(document.getElementById("pie"));
+        var option = {
+            title : {
+        text: '销售额情况',
+        x:'center'
+    },
+            tooltip: {
+                trigger: 'item',
+                formatter: "{a} <br/>{b}: {c} ({d}%)"
+            },
+            legend: {
+                orient: 'vertical',
+                x: 'left',
+                data:class
+            },
+            series: [
+                {
+                    name:'来源',
+                    radius : '55%',
+                    center: ['50%', '60%'],
+                    type:'pie',
+                    data:data
+                }
+            ]
+        };
+        Mychart.setOption(option);
+</script>
+
+```{r pdata }
+
+
+```
+
+
+1. 每月的销售额图如下图所示，下图中月销售量最大的是`r `,
+
+```{r, echo=FALSE, fig.height=4.6, fig.width=10}
+library(recharts)
+
+ts=as.ts(rsal$sale)
+option = list(
+  tooltip = list(trigger = 'item'),
+  legend = list(data = c('总量',"非员工销量")),
+  calculable = "TRUE",
+  dataZoom = list(
+    show = "TRUE",
+    realtime = "TRUE",
+    start = 20,
+    end = 80
+  ),
+  xAxis = list(list(
+    type = 'category',
+    boundaryGap = FALSE,
+    data =as.character(rsal$day)
+      
+  )),
+  yAxis = list(list(type = 'value',
+                  name="日销量（元）")
+               ),
+  series = list(list(
+    name = '总量',
+    type = 'line',
+    smooth=TRUE,
+    lineStyle=list(normal=list( 
+                        width= 2,
+                        shadowColor= 'rgba(0,255,255,0.2)',
+                        color='rgba(0,17,255,0.2)',
+                        shadowBlur=10,
+                        shadowOffsetY= 10) ),
+                    
+                 
+    data =rsal$sale
+  ),
+  list(
+    name = '非员工',
+    type = 'line',
+    smooth=TRUE,
+    lineStyle=list(normal=list( 
+                        width= 2,
+                        shadowColor= 'rgba(0,255,255,0.2)',
+                        color='rgba(0,17,255,0.2)',
+                        shadowBlur=10,
+                        shadowOffsetY= 10) ),
+                    
+                 
+    data =rsal$sale
+  )
+  )
+)
+echart(option)
+```
+
+
+
+1. 每日销售额图，从图中可以知道在，（时序图）
+在这段时间内，每日销售额最大为：，是在号。销售额的平均值为
+
+```{r, echo=FALSE, fig.height=4.6, fig.width=10}
+library(recharts)
+
+ts=as.ts(rsal$sale)
+option = list(
+  tooltip = list(trigger = 'item'),
+  legend = list(data = c('总量',"非员工销量")),
+  calculable = "TRUE",
+  dataZoom = list(
+    show = "TRUE",
+    realtime = "TRUE",
+    start = 20,
+    end = 80
+  ),
+  xAxis = list(list(
+    type = 'category',
+    boundaryGap = FALSE,
+    data =as.character(rsal$day)
+      
+  )),
+  yAxis = list(list(type = 'value',
+                  name="日销量（元）")
+               ),
+  series = list(list(
+    name = '总量',
+    type = 'line',
+    smooth=TRUE,
+    lineStyle=list(normal=list( 
+                        width= 2,
+                        shadowColor= 'rgba(0,255,255,0.2)',
+                        color='rgba(0,17,255,0.2)',
+                        shadowBlur=10,
+                        shadowOffsetY= 10) ),
+                    
+                 
+    data =rsal$sale
+  ),
+  list(
+    name = '非员工',
+    type = 'line',
+    smooth=TRUE,
+    lineStyle=list(normal=list( 
+                        width= 2,
+                        shadowColor= 'rgba(0,255,255,0.2)',
+                        color='rgba(0,17,255,0.2)',
+                        shadowBlur=10,
+                        shadowOffsetY= 10) ),
+                    
+                 
+    data =rsal$sale
+  )
+  )
+)
+echart(option)
+```
+
+
+
+
+# 订单分析
+
+1. 总体销售额，员工提供，用户提供（饼图）
+
+
+1. 每月的销售额图，（时序图）
+
+
+1. 每日销售额图，从图中可以知道在，（时序图）
+在这段时间内，每日销售额最大为：，是在号。销售额的平均值为
+
+其中各个商品的订单量如下图表所示：
+
+```{r data,results='asis',echo=FALSE}
+# nd=read.csv('nd.csv')
+# dt = paste(unlist(lapply(dataOut, function(z) {
+#   x = paste(round(z$name, 3), collapse = ',')
+#   y = paste(round(z$freq, 3), collapse = ',')
+#   sprintf('{\n  "x": [%s],\n  "y": [%s]\n}', xs, ys)
+# })), collapse = ', \n')
+# cat('<script>',
+#     sprintf('var data = [%s]', xy),
+#     '</script>',
+#     sep = '\n')
+
+```
+<script src="./js/wordcloud2.js"></script>
+
+<canvas id="myCanvas" width="600" height="600"></canvas>
+
+<script>
+        var option={
+        list:[["数据",2304],["统计",1413],["用户",855]] ,
+        gridSize: 0,
+        weightFactor:120/2304,
+        minRotation: 1.58,
+        maxRotation: 1.58,
+        rotateRatio: 0.3,
+        color: function(){
+        return ['blue','rgb(95, 95, 253)','rgb(146, 146, 255)','rgb(169, 169, 226)','rgb(168, 217,252)'][Math.floor(Math.random()*5)]},
+        fontFamily: '微软雅黑',
+        backgroundColor: '#fff',
+        shuffle : "TRUE",
+        shape : 'circle',
+        ellipticity : 0.65,
+        Interactive:'TRUE'
+        }
+        var elements= document.getElementById('myCanvas');
+        WordCloud(elements, option);
+</script>
+
+
+其中订单量排名前三的商品为：<font face="微软雅黑" size=6 color=red> `r head(dataOut$name,3)` </font>。 其详细的情况如下表：
+
+
+```{r tab, dependson="prepare-data",echo=FALSE,results='asis'}
+
+knitr::kable(
+  head(nd,30),align='c',caption = '订单前30'
+)
+```
+
+从表中可以看出
+
+```{r pic, dependson="prepare-data",echo=FALSE}
+# library(wordcloud2)
+# wordcloud2::wordcloud2(demoFreqC,size=0.3)
+#   
+# wordcloud2::wordcloud2(nd[,1:2],size=0.3)
+
+```
+
+#用户分析
+

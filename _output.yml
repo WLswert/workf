@@ -1,0 +1,21 @@
+bookdown::gitbook:
+  css: css/style.css
+  config:
+    sharing:
+      facebook: no
+      weibo: yes
+    toc:
+      collapse: subsection
+      before: |
+        <li><a href="./">销量分析</a></li>
+bookdown::html_book:
+  css: [css/style.css, css/toc.css]
+bookdown::pdf_book:
+  includes:
+    in_header: preamble.tex
+  keep_tex: yes
+  latex_engine: xelatex
+  citation_package: natbib
+  base_format: rticles::ctex
+bookdown::epub_book:
+  stylesheet: css/style.css
